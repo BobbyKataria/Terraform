@@ -34,7 +34,7 @@ resource "azurerm_public_ip" "myterraformpublicip" {
     location                     = "uksouth"
     resource_group_name          = "${azurerm_resource_group.myterraformgroup.name}"
     allocation_method            = "Dynamic"
-
+    domain_name_label            = "azureuser-${formatdate("DDMMYYhhmmss", timestamp())}"
     tags = {
         environment = "Terraform Demo"
     }
@@ -76,7 +76,6 @@ resource "azurerm_network_interface" "myterraformnic" {
         private_ip_address_allocation = "Dynamic"
         public_ip_address_id          = "${azurerm_public_ip.myterraformpublicip.id}"
     }
-
     tags = {
         environment = "Terraform Demo"
     }
@@ -128,7 +127,7 @@ resource "azurerm_virtual_machine" "myterraformvm" {
     }
 
     os_profile {
-        computer_name  = "myvm"
+        computer_name  = "myVM"
         admin_username = "azureuser"
     }
 
@@ -136,7 +135,7 @@ resource "azurerm_virtual_machine" "myterraformvm" {
         disable_password_authentication = true
         ssh_keys {
             path     = "/home/azureuser/.ssh/authorized_keys"
-            key_data = file("~/.ssh/id_rsa.pub")
+            key_data = file("/home/adminbk/.ssh/id_rsa.pub")
         }
     }
 
@@ -148,4 +147,17 @@ resource "azurerm_virtual_machine" "myterraformvm" {
     tags = {
         environment = "Terraform Demo"
     }
+    provisioner "remote-exec" {
+	inline = [
+	 	 "git clone https://github.com/BobbyKataria/jenkinTask.git",
+		 "cd ~/jenkinTask",
+		 "./install.sh"
+		 ]
+	connection {
+	   type = "ssh"
+           user = "azureuser"
+	   private_key = file("/home/adminbk/.ssh/id_rsa")
+	   host = "${azurerm_public_ip.myterraformpublicip.fqdn}"
+	}
+	}
 }
